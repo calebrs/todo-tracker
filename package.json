@@ -21,6 +21,9 @@
   "homepage": "https://github.com/calebrs/todos-js175#readme",
   "dependencies": {
     "express": "^4.17.1",
+    "express-flash": "^0.0.2",
+    "express-session": "^1.17.1",
+    "express-validator": "^6.10.0",
     "morgan": "^1.10.0",
     "pug": "^3.0.2"
   },

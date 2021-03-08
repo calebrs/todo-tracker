@@ -15,4 +15,10 @@ html(lang="en-US")
       block headerLinks
 
     main
+      - let kinds = Object.keys(flash || {});
+      if kinds.length > 0
+        ul
+          each kind in kinds
+            each message in flash[kind]
+              li.flash(class=kind)= message
       block main
