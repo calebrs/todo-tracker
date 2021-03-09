@@ -76,6 +76,28 @@ app.post("/lists",
   }
 );
 
+app.post("/lists/:todoListId/todos/:todoId/toggle", (req, res, next) => {
+  let listId = req.params.todoListId;
+  let list = todoLists.filter(list => list.id === Number(listId))[0];
+  let todoId = Number(req.params.todoId);
+  let todo = list.findById(todoId);
+  let check = !todo || Object.entries(todo).length === 0;
+
+  if (!todo || Object.entries(todo).length === 0) {
+    next(new Error("Not found."));
+  } else {
+    if (todo.isDone()) {
+      todo.markUndone();
+      req.flash("Success", "Item Marked as incomplete.");
+    } else {
+      todo.markDone();
+      req.flash("Success", "Item marked as complete");
+    }
+  } 
+  
+  res.redirect(`/lists/${listId}`);
+});
+
 app.get("/lists/:todoListId", (req, res, next) => {
   let listId = req.params.todoListId;
   let list = todoLists.filter(list => list.id === Number(listId))[0];
