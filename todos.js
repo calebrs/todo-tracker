@@ -81,7 +81,6 @@ app.post("/lists/:todoListId/todos/:todoId/toggle", (req, res, next) => {
   let list = todoLists.filter(list => list.id === Number(listId))[0];
   let todoId = Number(req.params.todoId);
   let todo = list.findById(todoId);
-  let check = !todo || Object.entries(todo).length === 0;
 
   if (!todo || Object.entries(todo).length === 0) {
     next(new Error("Not found."));
@@ -98,6 +97,37 @@ app.post("/lists/:todoListId/todos/:todoId/toggle", (req, res, next) => {
   res.redirect(`/lists/${listId}`);
 });
 
+app.post("/lists/:todoListId/todos/:todoId/destroy", (req, res, next) => {
+  let listId = req.params.todoListId;
+  let list = todoLists.filter(list => list.id === Number(listId))[0];
+  let todoId = Number(req.params.todoId);
+  let todo = list.findById(todoId);
+
+  if (!todo || list) {
+    next(new Error("Not found."));
+  } else {
+    let index = list.findIndexOf(todo);
+    list.removeAt(index);
+  }
+
+  req.flash("Success", "Item removed from list.");
+  res.redirect(`/lists/${listId}`);
+});
+
+app.post("/lists/:todoListId/complete_all", (req, res, next) => {
+  let listId = req.params.todoListId;
+  let list = todoLists.filter(list => list.id === Number(listId))[0];
+
+  if (!list) {
+    next(new Error("Not found."));
+  } else {
+    list.markAllDone();
+    req.flash("Success", "All items marked as complete.");
+    res.redirect(`/lists/${listId}`);
+  }
+
+})
+
 app.get("/lists/:todoListId", (req, res, next) => {
   let listId = req.params.todoListId;
   let list = todoLists.filter(list => list.id === Number(listId))[0];
@@ -111,6 +141,8 @@ app.get("/lists/:todoListId", (req, res, next) => {
     });
   }
 });
+
+
 
 app.use((err, req, res, _next) => {
   console.log(err);
