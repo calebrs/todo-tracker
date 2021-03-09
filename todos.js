@@ -4,6 +4,7 @@ const flash = require("express-flash");
 const session = require("express-session");
 const { body, validationResult } = require("express-validator");
 const TodoList = require("./lib/todolist");
+const Todo = require("./lib/todo");
 const { sortTodoLists, sortTodos } = require("./lib/sort");
 
 const app = express();
@@ -125,8 +126,40 @@ app.post("/lists/:todoListId/complete_all", (req, res, next) => {
     req.flash("Success", "All items marked as complete.");
     res.redirect(`/lists/${listId}`);
   }
+});
 
-})
+app.post("/lists/:todoListId/todos", 
+[
+  body("todoTitle")
+    .trim()
+    .isLength({ min: 1 })
+    .withMessage("The todo title is required.")
+    .isLength({ max: 100 })
+    .withMessage("List todo title must be between 1 and 100 characters."),
+],
+(req, res, next) => {
+  let errors = validationResult(req);
+  let listId = req.params.todoListId;
+  let list = todoLists.filter(list => list.id === Number(listId))[0];
+
+  if (!list) {
+    next(new Error("Not found."));
+  } else {
+    if (!errors.isEmpty()) {
+      errors.array().forEach(message => req.flash("error", message.msg));
+      
+      res.render("list", {
+        todoList: list,
+        todos: sortTodos(list),
+        flash: req.flash(),
+      });
+    } else {
+      list.add(new Todo(req.body.todoTitle));
+      req.flash("success", "New item added to the list.");
+      res.redirect(`/lists/${listId}`);
+    }
+  }
+});
 
 app.get("/lists/:todoListId", (req, res, next) => {
   let listId = req.params.todoListId;
@@ -141,8 +174,6 @@ app.get("/lists/:todoListId", (req, res, next) => {
     });
   }
 });
-
-
 
 app.use((err, req, res, _next) => {
   console.log(err);
