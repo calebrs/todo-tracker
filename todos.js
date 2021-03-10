@@ -104,7 +104,7 @@ app.post("/lists/:todoListId/todos/:todoId/destroy", (req, res, next) => {
   let todoId = Number(req.params.todoId);
   let todo = list.findById(todoId);
 
-  if (!todo || list) {
+  if (!todo) {
     next(new Error("Not found."));
   } else {
     let index = list.findIndexOf(todo);
@@ -161,6 +161,19 @@ app.post("/lists/:todoListId/todos",
   }
 });
 
+app.get("/lists/:todoListId/edit", (req, res, next) => {
+  let listId = req.params.todoListId;
+  let list = todoLists.filter(list => list.id === Number(listId))[0];
+
+  if (list === undefined) {
+    next(new Error("Not found"));
+  } else {
+    res.render("edit-list", {
+      todoList: list,
+    });
+  }
+});
+
 app.get("/lists/:todoListId", (req, res, next) => {
   let listId = req.params.todoListId;
   let list = todoLists.filter(list => list.id === Number(listId))[0];
@@ -174,6 +187,59 @@ app.get("/lists/:todoListId", (req, res, next) => {
     });
   }
 });
+
+app.post("/lists/:todoListId/destroy", (req, res, next) => {
+  let listId = req.params.todoListId;
+  let list = todoLists.filter(list => list.id === Number(listId))[0];
+
+  if (list === undefined) {
+    next(new Error("Not found"));
+  } else {
+    let listIndex = todoLists.indexOf(list);
+    todoLists.splice(listIndex, 1);
+    req.flash("Success", "List deleted");
+    res.redirect('/lists');
+  }
+});
+
+app.post("/lists/:todoListId/edit", 
+  [
+    body("todoListTitle")
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage("The list title is required.")
+      .isLength({ max: 100 })
+      .withMessage("List title must be between 1 and 100 characters.")
+      .custom(title => {
+        let duplicate = todoLists.find(list => list.title === title);
+        return duplicate === undefined;
+      })
+      .withMessage("List title must be unique."),
+  ],
+  (req, res, next) => {
+    let errors = validationResult(req);
+    let listId = req.params.todoListId;
+    let list = todoLists.filter(list => list.id === Number(listId))[0];
+
+    if (!list) {
+      next(new Error("Not found"));
+    } else {
+      if (!errors.isEmpty()) {
+        errors.array().forEach(message => req.flash("error", message.msg));
+      
+        res.render("edit-list", {
+          todoList: list,
+          todoListTitle: req.body.todoListTitle,
+          flash: req.flash(),
+        });
+      } else {
+        list.setTitle(req.body.todoListTitle);
+        req.flash("success", "The lists name was changed.");
+        res.redirect(`/lists/${listId}`);
+      }
+    }
+  }
+);
 
 app.use((err, req, res, _next) => {
   console.log(err);
