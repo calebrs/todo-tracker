@@ -1,12 +1,13 @@
-const express = require("express");
-const morgan = require("morgan");
-const flash = require("express-flash");
-const session = require("express-session");
-const { body, validationResult } = require("express-validator");
-const TodoList = require("./lib/todolist");
+const express = require("express"); //includes express library to manage requests
+const morgan = require("morgan"); //includes the morgan library that logs messeges to the console when request are made
+const flash = require("express-flash"); // includes the flash library that allows flash messages to be added through middleware
+const session = require("express-session"); // includes the expression session library that allows a sesssionst to be created
+const { body, validationResult } = require("express-validator"); // includes the validator objects
+const TodoList = require("./lib/todolist"); 
 const Todo = require("./lib/todo");
 const { sortTodoLists, sortTodos } = require("./lib/sort");
 const store = require("connect-loki");
+const SessionPersistence = require("./lib/session-persistence");
 
 const app = express();
 const host = "localhost";
@@ -34,21 +35,26 @@ app.use(session({
 }));
 
 app.use(flash());
-app.use((req, res, next) => {
+app.use((req, res, next) => { // any requests that have flash messages in them will be transfered over. The they're deleted so they don't repeat
   res.locals.flash = req.session.flash;
   delete req.session.flash;
   next();
 });
 
-app.use((req, res, next) => {
-  let todoLists = [];
-  if ("todoLists" in req.session) {
-    req.session.todoLists.forEach(todoList => {
-      todoLists.push(TodoList.makeTodoList(todoList));
-    });
-  }
+// app.use((req, res, next) => { //rebuilds the todolist when it comes from the data store
+//   let todoLists = [];
+//   if ("todoLists" in req.session) {
+//     req.session.todoLists.forEach(todoList => {
+//       todoLists.push(TodoList.makeTodoList(todoList));
+//     });
+//   }
 
-  req.session.todoLists = todoLists;
+//   req.session.todoLists = todoLists;
+//   next();
+// });
+
+app.use((req, res, next) => {
+  res.locals.store = new SessionPersistence(req.session);
   next();
 });
 
