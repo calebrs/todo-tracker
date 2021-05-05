@@ -5,11 +5,12 @@ block main
     p#no_list You don't have any todo lists. Why not create one?
   else
     ul#lists
-      each todoList in todoLists
-        li(class=todoList.isDone() ? "done" : "")
+      each todoList, todoIndex in todoLists
+        - let todoInfo = todosInfo[todoIndex];
+        li(class=todoInfo.isDone ? "done" : "")
           a(href=`/lists/${todoList.id}`)
             h2= todoList.title
-            p #{todoList.allDone().size()} / #{todoList.size()}
+            p #{todoList.todos.filter(todo => todo.done).length} / #{todoList.todos.length}
 
 block headerLinks
   .actions
