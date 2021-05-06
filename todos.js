@@ -4,7 +4,7 @@ const flash = require("express-flash"); // includes the flash library that allow
 const session = require("express-session"); // includes the expression session library that allows a sesssionst to be created
 const { body, validationResult } = require("express-validator"); // includes the validator objects
 const store = require("connect-loki");
-const SessionPersistence = require("./lib/session-persistence");
+const PgPersistence = require("./lib/pg-persistence");
 
 const app = express();
 const host = "localhost";
@@ -39,8 +39,18 @@ app.use((req, res, next) => { // any requests that have flash messages in them w
 });
 
 app.use((req, res, next) => {
-  res.locals.store = new SessionPersistence(req.session);
+  res.locals.store = new PgPersistence(req.session);
   next();
+});
+
+app.use(async (req, res) => {
+  try {
+    await res.locals.store.testQuery1();
+    await res.locals.store.testQuery2();
+    res.send("quitting");
+  } catch {
+    next(error);
+  }
 });
 
 app.get("/", (req, res) => {
@@ -209,7 +219,7 @@ app.get("/lists/:todoListId", (req, res, next) => {
 
 app.post("/lists/:todoListId/destroy", (req, res, next) => {
   let listId = req.params.todoListId;
-  let deleted = res.locals.store.deleteTodoList(listId);
+  let deleted = res.locals.store.deleteTodoList(+listId);
 
   if (!deleted) {
     next(new Error("Not found"));
