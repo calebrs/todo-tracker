@@ -43,16 +43,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(async (req, res) => {
-  try {
-    await res.locals.store.testQuery1();
-    await res.locals.store.testQuery2();
-    res.send("quitting");
-  } catch {
-    next(error);
-  }
-});
-
 app.get("/", (req, res) => {
   res.redirect("lists");
 });
