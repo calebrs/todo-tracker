@@ -34,6 +34,8 @@ app.use(session({
 
 app.use(flash());
 app.use((req, res, next) => { // any requests that have flash messages in them will be transfered over. The they're deleted so they don't repeat
+  res.locals.username = req.session.username;
+  res.locals.signedIn = req.session.signedIn;
   res.locals.flash = req.session.flash;
   delete req.session.flash;
   next();
@@ -44,15 +46,27 @@ app.use((req, res, next) => {
   next();
 });
 
+const requireAuthentication = (req, res, next) => {
+  if (!res.locals.signedIn) {
+    res.redirect(302, "/users/signin");
+  } else {
+    next();
+  }
+};
+
 app.get("/", (req, res) => {
   res.redirect("lists");
 });
 
-app.get("/lists/new", (req, res) => {
-  res.render("new-list");
-});
+app.get("/lists/new",
+  requireAuthentication,
+  (req, res) => {
+    res.render("new-list");
+  }
+);
 
 app.get("/lists",
+  requireAuthentication,
   catchError(async (req, res) => {
     let store = res.locals.store;
     let todoLists = await store.sortedTodoLists();
@@ -71,6 +85,7 @@ app.get("/lists",
 );
 
 app.post("/lists",
+  requireAuthentication,
   [
     body("todoListTitle")
       .trim()
@@ -101,6 +116,7 @@ app.post("/lists",
 );
 
 app.post("/lists/:todoListId/todos/:todoId/toggle",
+  requireAuthentication,
   catchError (async (req, res) => {
     let { todoListId, todoId } = req.params;
     let toggled = await res.locals.store.toggleDoneTodo(+todoListId, +todoId);
@@ -120,6 +136,7 @@ app.post("/lists/:todoListId/todos/:todoId/toggle",
 );
 
 app.post("/lists/:todoListId/todos/:todoId/destroy",
+  requireAuthentication,
   catchError (async (req, res) => {
     let { todoListId, todoId } = req.params;
     let deleted = await res.locals.store.deleteTodo(+todoListId, +todoId);
@@ -133,6 +150,7 @@ app.post("/lists/:todoListId/todos/:todoId/destroy",
 );
 
 app.post("/lists/:todoListId/complete_all",
+  requireAuthentication,
   catchError (async (req, res) => {
     let { todoListId } = req.params;
     let completed = await res.locals.store.completeAllTodos(+todoListId);
@@ -146,7 +164,8 @@ app.post("/lists/:todoListId/complete_all",
   })
 );
 
-app.post("/lists/:todoListId/todos", 
+app.post("/lists/:todoListId/todos",
+  requireAuthentication,
   [
     body("todoTitle")
       .trim()
@@ -190,6 +209,7 @@ app.post("/lists/:todoListId/todos",
 );
 
 app.get("/lists/:todoListId/edit",
+  requireAuthentication,
   catchError(async (req, res) => {
     let listId = req.params.todoListId;
     let todoList = await res.locals.store.loadTodoList(+listId);
@@ -205,6 +225,7 @@ app.get("/lists/:todoListId/edit",
 );
 
 app.get("/lists/:todoListId",
+  requireAuthentication,
   catchError(async (req, res) => {
     let listId = req.params.todoListId;
     let todoList = await res.locals.store.loadTodoList(+listId);
@@ -223,6 +244,7 @@ app.get("/lists/:todoListId",
 );
 
 app.post("/lists/:todoListId/destroy",
+  requireAuthentication,
   catchError (async (req, res) => {
     let listId = req.params.todoListId;
     let deleted = await res.locals.store.deleteTodoList(+listId);
@@ -236,7 +258,8 @@ app.post("/lists/:todoListId/destroy",
   })
 );
 
-app.post("/lists/:todoListId/edit", 
+app.post("/lists/:todoListId/edit",
+  requireAuthentication,
   [
     body("todoListTitle")
       .trim()
@@ -288,6 +311,40 @@ app.post("/lists/:todoListId/edit",
     }
   })
 );
+
+app.get('/users/signin', (req, res) => {
+  req.flash("info", "Please sign in.");
+  res.render('signin', {
+    flash: req.flash(),
+  });
+});
+
+app.post('/users/signin',
+  catchError (async (req, res) => {
+    let username = req.body.username.trim();
+    let password = req.body.password;
+
+    let authenticated = await res.locals.store.authenticate(username, password);
+    if (!authenticated) {
+      req.flash("error", "Invalid credentials.");
+      res.render("signin", {
+        flash: req.flash(),
+        username: req.body.username,
+      });
+    } else {
+      req.session.username = username;
+      req.session.signedIn = true;
+      req.flash("Info", "Welcome!");
+      res.redirect("/lists");
+    }
+  })
+);
+
+app.post('/users/signout' , (req, res) => {
+  delete req.session.username;
+  delete req.session.signedIn;
+  res.redirect("/users/signin");
+});
 
 app.use((err, req, res, _next) => {
   console.log(err);
