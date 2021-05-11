@@ -108,3 +108,6 @@ lib/users.sql
 
 # session
 session-store.db
+
+#env
+.env

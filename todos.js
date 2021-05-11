@@ -1,3 +1,4 @@
+const config = require("./lib/config");
 const express = require("express"); //includes express library to manage requests
 const morgan = require("morgan"); //includes the morgan library that logs messeges to the console when request are made
 const flash = require("express-flash"); // includes the flash library that allows flash messages to be added through middleware
@@ -8,8 +9,8 @@ const PgPersistence = require("./lib/pg-persistence");
 const catchError = require("./lib/catch-error");
 
 const app = express();
-const host = "localhost";
-const port = 3000;
+const host = config.HOST;
+const port = config.PORT;
 const LokiStore = store(session);
 
 app.set("views", "./views");
@@ -28,7 +29,7 @@ app.use(session({
   name: "launch-school-todos-session-id",
   resave: false,
   saveUninitialized: true,
-  secret: "this is not very secure",
+  secret: config.SECRET,
   store: new LokiStore({}),
 }));
 
